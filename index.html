@@ -1,0 +1,143 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="wrapper">
+	<div id="searchBox">
+		<input type = "text" name = "searchText" id="searchText" placeholder = "Enter page name to search" onkeyup="demoApp.submitOnEnterKey(event)" />
+		<input type="button" value = "Search" id="searchButton" onclick = "demoApp.findPages()" />
+	</div>
+	<p id="favouritePages" onclick = "demoApp.showFavouritesPageList()">Show Favourite Pages</p>
+	<div id="pageWrapper">
+		<div id="pageList"></div>
+		<div id="page"></div>
+	</div>
+</div>
+<script type="text/javascript">
+var demoApp=(function(){
+	var accessToken = "565249373560024|Diblm34UTfesJ4fNfnBqbzESCZE";
+	var graphApiBaseUrl = "https://graph.facebook.com/";
+	var favoritePages = [];
+	var pageList = [];
+	var page = {};
+	receivePageList = function(data){
+		pageList = data.data;
+		demoApp.showSearchedPageList();
+	}
+	receivePage =  function(data){
+		page = data;
+		demoApp.showPage();
+	}
+	return{
+		jsonpCall : function(scriptSrc){
+				var script = document.createElement('script');
+				script.src = scriptSrc;
+				document.getElementsByTagName('head')[0].appendChild(script);
+		},
+		findPages : function(){
+			var searchString = document.getElementById('searchText').value.trim();
+			searchString != '' ? this.jsonpCall(graphApiBaseUrl+"search?q="+searchString+"&type=page&access_token="+accessToken+"&callback=receivePageList") : alert('Please enter valid search term')
+		},
+		getPageList : function(){
+			return pageList;
+		},
+		showPageList : function(heading,pageListSource){
+			this.clearPageList();
+			this.clearPage();
+			var pageListContainer = document.getElementById('pageList');
+			var h2 = document.createElement('h2')
+			h2.innerHTML = heading;
+			pageListContainer.appendChild(h2);
+			pageListSource.forEach(function(obj){
+				var div = document.createElement("div");
+				div.className = "pageItem";
+				var h3 = document.createElement('h3');
+				h3.innerHTML = obj.name;
+				h3.onclick = function(){
+					demoApp.getPage(obj.id);
+					demoApp.toggleClass(div);
+				};
+				div.appendChild(h3);
+				var p = document.createElement('p');
+				p.innerHTML = obj.category;
+				div.appendChild(p);
+				var fav = document.createElement('span');
+				fav.innerHTML = "Add to favourites";
+				for(var favPageIndex in favoritePages){
+					if(obj.id == favoritePages[favPageIndex].id){
+						fav.innerHTML = "Remove from favourites";
+						break;
+					}
+				}
+				fav.onclick = function(){
+					demoApp.toggleFavourite(fav,obj);
+				};
+				div.appendChild(fav);
+				pageListContainer.appendChild(div);
+			})
+		},
+		clearPageList : function(){
+			pageList = [];
+			var pageListContainer = document.getElementById('pageList');
+			pageListContainer.innerHTML = "";
+		},
+		getPage : function(id){
+			this.clearPage();
+			this.jsonpCall(graphApiBaseUrl+id+"?callback=receivePage")
+		},
+		showPage : function(){
+			var pageContainer = document.getElementById('page');
+			for (var item in page) {
+				if (page.hasOwnProperty(item) && typeof(page[item])!="boolean" && typeof(page[item])!="object") {
+					var p = document.createElement('p');
+					p.innerHTML = item+" : "+page[item];
+					pageContainer.appendChild(p);
+				}
+			}
+		},
+		clearPage : function(){
+			page={};
+			var pageContainer = document.getElementById('page');
+			pageContainer.innerHTML = "";
+		},
+		toggleClass : function(div){
+			var otherDivs = document.getElementsByClassName('pageItem')
+			for(var element in otherDivs){
+				otherDivs[element].className = "pageItem";
+			}
+			div.className = "pageItem active";
+		},
+		toggleFavourite : function(fav,obj){
+			if(fav.innerHTML == "Add to favourites"){
+				favoritePages.push(obj);
+				fav.innerHTML = "Remove from favourites";
+			}else{
+				for(var favPageIndex in favoritePages){
+					if(obj.id == favoritePages[favPageIndex].id){
+						favoritePages.splice(favPageIndex, 1);
+						fav.innerHTML = "Add to favourites";
+						break;
+					}
+				}
+			}
+		},
+		showSearchedPageList : function(){
+			this.showPageList("Search Results : "+pageList.length+ " pages found.", pageList);
+		},
+		showFavouritesPageList : function(){
+			this.showPageList("Your Favourite pages : "+favoritePages.length, favoritePages);
+		},
+		submitOnEnterKey : function(e){
+			if (typeof e == 'undefined' && window.event) { e = window.event; }
+			if (e.keyCode == 13)
+			{
+				document.getElementById('searchButton').click();
+			}
+		}
+	}
+})()
+</script>
+</body>
+</html>
